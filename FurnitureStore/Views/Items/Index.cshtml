@@ -1,0 +1,277 @@
+﻿@model IEnumerable<FurnitureStore.Models.Item>
+
+@{
+    ViewData["Title"] = "Index";
+}
+
+
+<div class="container section-padding">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="display-5 fw-bold">Our Collection</h1>
+            <p class="text-muted">Explore our wide range of premium furniture.</p>
+        </div>
+        @*  <a asp-action="Create" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Add New Item</a> *@
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model)
+        {
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card h-100">
+                    <div class="position-relative">
+                        <div class="item-carousel" data-item-id="@item.Items_ID">
+                            @{
+                                var images = item.Images.ToList();
+                                if (images.Any() && images[0].image != null)
+                                {
+                                    <div class="carousel-inner position-relative">
+                                        @for (int i = 0; i < images.Count; i++)
+                                        {
+                                            var base64 = Convert.ToBase64String(images[i].image);
+                                            var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                            <div class="carousel-item @(i == 0 ? "active" : "")" data-index="@i">
+                                                <img src="@imgSrc" class="card-img-top" alt="@item.Name" style="height: 250px; object-fit: cover;">
+                                            </div>
+                                        }
+
+                                        <!-- Navigation Arrows -->
+                                        @if (images.Count > 1)
+                                        {
+                                            <button class="carousel-control-prev" type="button" data-bs-target=".item-carousel" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target=".item-carousel" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <!-- Indicators/Dots -->
+                                    @if (images.Count > 1)
+                                    {
+                                        <div class="carousel-indicators position-absolute bottom-0" style="z-index: 2;">
+                                            @for (int i = 0; i < images.Count; i++)
+                                            {
+                                                <button type="button" data-bs-target=".item-carousel" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "false")" aria-label="Slide @(i + 1)"></button>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <img src="https://via.placeholder.com/400x300?text=No+Image" class="card-img-top" alt="No Image" style="height: 250px; object-fit: cover;">
+                                }
+                            }
+                        </div>
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <span class="badge bg-white text-dark shadow-sm">$@item.UnitPrice</span>
+                        </div>
+                        <div class="position-absolute top-0 start-0 p-2">
+                            @if (ViewBag.WishListItemIds != null && ViewBag.WishListItemIds.Contains(item.Items_ID))
+                            {
+                                <button class="btn btn-sm shadow-sm wishlist-btn"
+                                        data-item-id="@item.Items_ID"
+                                        data-in-wishlist="true"
+                                        style="background: transparent; border: none; padding: 0;">
+                                    <i class="fas fa-heart text-gold"></i>
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-sm shadow-sm wishlist-btn"
+                                        data-item-id="@item.Items_ID"
+                                        data-in-wishlist="false"
+                                        style="background: transparent; border: none; padding: 0;">
+                                    <i class="far fa-heart text-gold"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-truncate">@item.Name</h5>
+                        <p class="card-text text-muted small text-truncate" style="max-height: 3em; overflow: hidden;">@item.Description</p>
+                        @if (ViewBag.CartItemIds != null && ViewBag.CartItemIds.Contains(item.Items_ID))
+                        {
+                            <button class="btn btn-sm btn-secondary flex-grow-1 me-1" disabled>
+                                In Cart
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-sm btn-outline-primary flex-grow-1 me-1 add-to-cart-btn"
+                                    data-item-id="@item.Items_ID">
+                                Add To Cart
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize carousels
+            $('.item-carousel').each(function() {
+                const carousel = $(this);
+                const items = carousel.find('.carousel-item');
+                const indicators = carousel.find('.carousel-indicators button');
+
+                if (items.length <= 1) return;
+
+                // Previous button
+                carousel.find('.carousel-control-prev').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const prevIndex = activeIndex === 0 ? items.length - 1 : activeIndex - 1;
+
+                    switchSlide(activeIndex, prevIndex);
+                });
+
+                // Next button
+                carousel.find('.carousel-control-next').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const nextIndex = activeIndex === items.length - 1 ? 0 : activeIndex + 1;
+
+                    switchSlide(activeIndex, nextIndex);
+                });
+
+                // Indicator clicks
+                indicators.click(function() {
+                    const targetIndex = parseInt($(this).data('bs-slide-to'));
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+
+                    if (activeIndex !== targetIndex) {
+                        switchSlide(activeIndex, targetIndex);
+                    }
+                });
+
+                function switchSlide(fromIndex, toIndex) {
+                    // Hide current active
+                    items.removeClass('active');
+                    indicators.removeClass('active').attr('aria-current', 'false');
+
+                    // Show new active
+                    items.eq(toIndex).addClass('active');
+                    indicators.eq(toIndex).addClass('active').attr('aria-current', 'true');
+                }
+            });
+
+            // Add to Cart functionality
+            $('.add-to-cart-btn').click(function() {
+                var button = $(this);
+                var itemId = button.data('item-id');
+
+                // Show loading state
+                button.html('<i class="fas fa-spinner fa-spin me-1"></i>Adding...');
+                button.prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("AddToCart", "Carts")',
+                    type: 'POST',
+                    data: { itemId: itemId },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update button state
+                            button.html('<i class="fas fa-check me-1"></i>Added to Cart');
+                            button.removeClass('btn-outline-primary').addClass('btn-success');
+
+                            // You might want to update cart counter here
+                            updateCartCounter();
+                        } else {
+                            // Handle error silently or log it
+                            console.error('Failed to add item to cart');
+                            resetButton(button);
+                        }
+                    },
+                    error: function() {
+                        console.error('Failed to add item to cart. Please try again.');
+                        resetButton(button);
+                    }
+                });
+            });
+
+            // Wishlist functionality
+            $('.wishlist-btn').click(function() {
+                var button = $(this);
+                var itemId = button.data('item-id');
+                var inWishlist = button.data('in-wishlist');
+
+                // Show loading state
+                var icon = button.find('i');
+                var originalClass = icon.attr('class');
+                icon.removeClass('far fas fa-heart').addClass('fas fa-spinner fa-spin');
+                button.prop('disabled', true);
+
+                // Determine if we're adding or removing
+                var url = inWishlist ? '@Url.Action("RemoveFromWishList", "WishLists")' : '@Url.Action("AddToWishList", "WishLists")';
+                var successMessage = inWishlist ? 'Removed from wishlist!' : 'Added to wishlist!';
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: { itemId: itemId },
+                    success: function(response) {
+                        if (response.success) {
+                            // Toggle the heart icon and state
+                            if (inWishlist) {
+                                // Was in wishlist, now removed - show empty heart
+                                icon.removeClass('fas fa-spinner fa-spin').addClass('far fa-heart text-gold');
+                                button.data('in-wishlist', false);
+                            } else {
+                                // Was not in wishlist, now added - show filled heart
+                                icon.removeClass('fas fa-spinner fa-spin').addClass('fas fa-heart text-gold');
+                                button.data('in-wishlist', true);
+                            }
+                            button.prop('disabled', false);
+                            showNotification(successMessage, 'success');
+                        } else {
+                            // Reset to original state
+                            icon.attr('class', originalClass);
+                            button.prop('disabled', false);
+                            showNotification(response.message || 'Operation failed', 'info');
+                        }
+                    },
+                    error: function() {
+                        // Reset to original state
+                        icon.attr('class', originalClass);
+                        button.prop('disabled', false);
+                        showNotification('Failed to update wishlist. Please try again.', 'error');
+                    }
+                });
+            });
+
+            function resetButton(button) {
+                button.html('Add To Cart');
+                button.prop('disabled', false);
+            }
+
+            function showNotification(message, type) {
+                var alertClass = type === 'success' ? 'alert-success' :
+                                type === 'error' ? 'alert-danger' : 'alert-info';
+
+                var notification = $('<div class="alert ' + alertClass + ' alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3" role="alert" style="z-index: 9999;">' +
+                    message +
+                    '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                    '</div>');
+
+                $('body').append(notification);
+
+                setTimeout(function() {
+                    notification.alert('close');
+                }, 3000);
+            }
+
+            function updateCartCounter() {
+                // Implement this to update cart item count in navbar if you have one
+            }
+        });
+    </script>
+}

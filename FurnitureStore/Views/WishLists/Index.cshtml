@@ -1,0 +1,188 @@
+﻿@model IEnumerable<FurnitureStore.Models.WishList>
+
+@{
+    ViewData["Title"] = "Wishlist";
+}
+
+<div class="container section-padding">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <div>
+            <h1 class="display-5 fw-bold">Your Wishlist</h1>
+            <p class="text-muted">Items you've saved for later.</p>
+        </div>
+        <a asp-controller="Items" asp-action="Index" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Continue Shopping
+        </a>
+    </div>
+
+    <div class="row g-4">
+        @foreach (var item in Model) {
+            <div class="col-md-6 col-lg-4 col-xl-3">
+                <div class="card h-100 shadow-sm border-0">
+                    <div class="position-relative">
+                        <div class="item-carousel" data-item-id="@item.Items.Items_ID">
+                            @{
+                                var images = item.Items.Images != null ? item.Items.Images.ToList() : new List<FurnitureStore.Models.tblImage>();
+                                if (images.Any() && images[0].image != null)
+                                {
+                                    <div class="carousel-inner position-relative">
+                                        @for (int i = 0; i < images.Count; i++)
+                                        {
+                                            var base64 = Convert.ToBase64String(images[i].image);
+                                            var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                            <div class="carousel-item @(i == 0 ? "active" : "")" data-index="@i">
+                                                <img src="@imgSrc" class="card-img-top" alt="@item.Items.Name" style="height: 250px; object-fit: cover;">
+                                            </div>
+                                        }
+
+                                        <!-- Navigation Arrows -->
+                                        @if (images.Count > 1)
+                                        {
+                                            <button class="carousel-control-prev" type="button" data-bs-target=".item-carousel" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target=".item-carousel" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <!-- Indicators/Dots -->
+                                    @if (images.Count > 1)
+                                    {
+                                        <div class="carousel-indicators position-absolute bottom-0" style="z-index: 2;">
+                                            @for (int i = 0; i < images.Count; i++)
+                                            {
+                                                <button type="button" data-bs-target=".item-carousel" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "false")" aria-label="Slide @(i + 1)"></button>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <img src="https://via.placeholder.com/400x300?text=No+Image" class="card-img-top" alt="No Image" style="height: 250px; object-fit: cover;">
+                                }
+                            }
+                        </div>
+                        <div class="position-absolute top-0 end-0 p-2">
+                            <span class="badge bg-white text-dark shadow-sm">$@item.Items.UnitPrice</span>
+                        </div>
+                    </div> 
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-truncate">@item.Items.Name</h5>
+                        <p class="card-text text-muted small text-truncate" style="max-height: 3em; overflow: hidden;">@item.Items.Description</p>
+                        
+                        <div class="mt-auto d-flex gap-2">
+                            <a asp-action="Details" asp-route-id="@item.WishList_ID" class="btn btn-sm btn-outline-info flex-grow-1">
+                                Details
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-danger flex-grow-1" data-bs-toggle="modal" data-bs-target="#deleteModal" data-id="@item.WishList_ID">
+                                Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+    
+    @if (!Model.Any())
+    {
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-heart fa-4x text-muted"></i>
+            </div>
+            <h3>Your wishlist is empty</h3>
+            <p class="text-muted">Save items you like to view them here.</p>
+            <a asp-controller="Items" asp-action="Index" class="btn btn-primary mt-3">Start Shopping</a>
+        </div>
+    }
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="deleteModalLabel">Confirm Removal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to remove this item from your wishlist?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="Delete" method="post" id="deleteForm">
+                    <input type="hidden" name="id" id="itemIdToDelete" />
+                    <button type="submit" class="btn btn-danger">Remove</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var deleteModal = document.getElementById('deleteModal');
+    deleteModal.addEventListener('show.bs.modal', function (event) {
+        var button = event.relatedTarget;
+        var id = button.getAttribute('data-id');
+        var input = document.getElementById('itemIdToDelete');
+        input.value = id;
+    });
+</script>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize carousels
+            $('.item-carousel').each(function() {
+                const carousel = $(this);
+                const items = carousel.find('.carousel-item');
+                const indicators = carousel.find('.carousel-indicators button');
+
+                if (items.length <= 1) return;
+
+                // Previous button
+                carousel.find('.carousel-control-prev').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const prevIndex = activeIndex === 0 ? items.length - 1 : activeIndex - 1;
+
+                    switchSlide(activeIndex, prevIndex);
+                });
+
+                // Next button
+                carousel.find('.carousel-control-next').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const nextIndex = activeIndex === items.length - 1 ? 0 : activeIndex + 1;
+
+                    switchSlide(activeIndex, nextIndex);
+                });
+
+                // Indicator clicks
+                indicators.click(function() {
+                    const targetIndex = parseInt($(this).data('bs-slide-to'));
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+
+                    if (activeIndex !== targetIndex) {
+                        switchSlide(activeIndex, targetIndex);
+                    }
+                });
+
+                function switchSlide(fromIndex, toIndex) {
+                    // Hide current active
+                    items.removeClass('active');
+                    indicators.removeClass('active').attr('aria-current', 'false');
+
+                    // Show new active
+                    items.eq(toIndex).addClass('active');
+                    indicators.eq(toIndex).addClass('active').attr('aria-current', 'true');
+                }
+            });
+        });
+    </script>
+}

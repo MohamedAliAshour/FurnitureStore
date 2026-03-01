@@ -1,0 +1,181 @@
+﻿@model FurnitureStore.Models.Item
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<div class="container section-padding">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm border-0 overflow-hidden">
+                <div class="row g-0">
+                    <div class="col-md-6">
+                        <div class="item-carousel" data-item-id="@Model.Items_ID">
+                            @{
+                                var images = Model.Images != null ? Model.Images.ToList() : new List<FurnitureStore.Models.tblImage>();
+                                if (images.Any() && images[0].image != null)
+                                {
+                                    <div class="carousel-inner position-relative">
+                                        @for (int i = 0; i < images.Count; i++)
+                                        {
+                                            var base64 = Convert.ToBase64String(images[i].image);
+                                            var imgSrc = String.Format("data:image/jpg;base64,{0}", base64);
+                                            <div class="carousel-item @(i == 0 ? "active" : "")" data-index="@i">
+                                                <img src="@imgSrc" class="img-fluid h-100 w-100" alt="@Model.Name" style="object-fit: cover; min-height: 400px;">
+                                            </div>
+                                        }
+
+                                        <!-- Navigation Arrows -->
+                                        @if (images.Count > 1)
+                                        {
+                                            <button class="carousel-control-prev" type="button" data-bs-target=".item-carousel" data-bs-slide="prev">
+                                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Previous</span>
+                                            </button>
+                                            <button class="carousel-control-next" type="button" data-bs-target=".item-carousel" data-bs-slide="next">
+                                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                                <span class="visually-hidden">Next</span>
+                                            </button>
+                                        }
+                                    </div>
+
+                                    <!-- Indicators/Dots -->
+                                    @if (images.Count > 1)
+                                    {
+                                        <div class="carousel-indicators position-absolute bottom-0" style="z-index: 2;">
+                                            @for (int i = 0; i < images.Count; i++)
+                                            {
+                                                <button type="button" data-bs-target=".item-carousel" data-bs-slide-to="@i" class="@(i == 0 ? "active" : "")" aria-current="@(i == 0 ? "true" : "false")" aria-label="Slide @(i + 1)"></button>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <img src="https://via.placeholder.com/600x400?text=No+Image" class="img-fluid h-100 w-100" alt="No Image" style="object-fit: cover; min-height: 400px;">
+                                }
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card-body p-4 p-lg-5 d-flex flex-column h-100">
+                            <div class="mb-auto">
+                                <h2 class="display-6 fw-bold mb-3">@Model.Name</h2>
+                                <h3 class="text-primary mb-4">$@Model.UnitPrice</h3>
+                                <p class="lead text-muted mb-4">@Model.Description</p>
+                            </div>
+                            
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-start mt-4">
+                                @if (ViewBag.CartItemIds != null && ViewBag.CartItemIds.Contains(Model.Items_ID))
+                                {
+                                    <button class="btn btn-secondary btn-lg px-4" disabled>
+                                        <i class="fas fa-check me-2"></i>In Cart
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn btn-primary btn-lg px-4 add-to-cart-btn" data-item-id="@Model.Items_ID">
+                                        <i class="fas fa-shopping-cart me-2"></i>Add to Cart
+                                    </button>
+                                }
+                                <a asp-action="Index" class="btn btn-link btn-lg px-4 text-decoration-none">
+                                    Back to List
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize carousels
+            $('.item-carousel').each(function() {
+                const carousel = $(this);
+                const items = carousel.find('.carousel-item');
+                const indicators = carousel.find('.carousel-indicators button');
+
+                if (items.length <= 1) return;
+
+                // Previous button
+                carousel.find('.carousel-control-prev').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const prevIndex = activeIndex === 0 ? items.length - 1 : activeIndex - 1;
+
+                    switchSlide(activeIndex, prevIndex);
+                });
+
+                // Next button
+                carousel.find('.carousel-control-next').click(function() {
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+                    const nextIndex = activeIndex === items.length - 1 ? 0 : activeIndex + 1;
+
+                    switchSlide(activeIndex, nextIndex);
+                });
+
+                // Indicator clicks
+                indicators.click(function() {
+                    const targetIndex = parseInt($(this).data('bs-slide-to'));
+                    const activeItem = carousel.find('.carousel-item.active');
+                    const activeIndex = parseInt(activeItem.data('index'));
+
+                    if (activeIndex !== targetIndex) {
+                        switchSlide(activeIndex, targetIndex);
+                    }
+                });
+
+                function switchSlide(fromIndex, toIndex) {
+                    // Hide current active
+                    items.removeClass('active');
+                    indicators.removeClass('active').attr('aria-current', 'false');
+
+                    // Show new active
+                    items.eq(toIndex).addClass('active');
+                    indicators.eq(toIndex).addClass('active').attr('aria-current', 'true');
+                }
+            });
+            $('.add-to-cart-btn').click(function() {
+                var button = $(this);
+                var itemId = button.data('item-id');
+
+                // Show loading state
+                button.html('<i class="fas fa-spinner fa-spin me-2"></i>Adding...');
+                button.prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("AddToCart", "Carts")',
+                    type: 'POST',
+                    data: { itemId: itemId },
+                    success: function(response) {
+                        if (response.success) {
+                            // Update button state
+                            button.html('<i class="fas fa-check me-2"></i>In Cart');
+                            button.removeClass('btn-primary').addClass('btn-secondary');
+                            
+                            // Optional: Update global cart counter if it exists
+                            // updateCartCounter();
+                        } else {
+                            console.error('Failed to add item to cart');
+                            resetButton(button);
+                        }
+                    },
+                    error: function() {
+                        console.error('Failed to add item to cart. Please try again.');
+                        resetButton(button);
+                    }
+                });
+            });
+
+            function resetButton(button) {
+                button.html('<i class="fas fa-shopping-cart me-2"></i>Add to Cart');
+                button.prop('disabled', false);
+            }
+        });
+    </script>
+}
